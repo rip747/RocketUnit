@@ -441,6 +441,7 @@
 	--->
 	<cffunction returntype="string" name="HTMLFormatTestResults" output="false">
 		<cfargument name="resultKey" type="string" required="false" default="test">
+		<cfargument name="showPassedTests" type="boolean" required="false" default="true">
 	
 		<cfset var testIndex = "">
 		<cfset var newline = chr(10) & chr(13)>
@@ -495,6 +496,7 @@
 		<table border="0" cellpadding="5" cellspacing="0">
 		<tr align="left"><th>Test Case</th><th>Test Name</th><th>Time</th><th>Status</th><th>Message</th></tr>
 		<cfloop from="1" to=#arrayLen(request[resultkey].results)# index="testIndex">
+			<cfif arguments.showPassedTests>
 			<tr valign="top">
 			<td>#request[resultkey].results[testIndex].testCase#</td>
 			<td>#request[resultkey].results[testIndex].testName#</td>
@@ -507,6 +509,7 @@
 				<td>#request[resultkey].results[testIndex].message#</td>
 			</cfif>
 			</tr>
+			</cfif>
 		</cfloop>
 		</table>
 		</cfoutput>
