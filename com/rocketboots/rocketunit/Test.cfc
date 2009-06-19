@@ -496,19 +496,29 @@
 		<table border="0" cellpadding="5" cellspacing="0">
 		<tr align="left"><th>Test Case</th><th>Test Name</th><th>Time</th><th>Status</th><th>Message</th></tr>
 		<cfloop from="1" to=#arrayLen(request[resultkey].results)# index="testIndex">
-			<cfif arguments.showPassedTests>
-			<tr valign="top">
-			<td>#request[resultkey].results[testIndex].testCase#</td>
-			<td>#request[resultkey].results[testIndex].testName#</td>
-			<td align="right">#request[resultkey].results[testIndex].time#</td>
-			<cfif request[resultkey].results[testIndex].status neq "Success">
+			<cfif arguments.showPassedTests and request[resultkey].results[testIndex].status neq "Success">
+				<tr valign="top">
+				<td>#request[resultkey].results[testIndex].testCase#</td>
+				<td>#request[resultkey].results[testIndex].testName#</td>
+				<td align="right">#request[resultkey].results[testIndex].time#</td>
 				<td><span style="color:red;font-weight:bold">#request[resultkey].results[testIndex].status#</span></td>
 				<td><span style="color:red;font-weight:bold">#replace(request[resultkey].results[testIndex].message, newline, "<br>", "ALL")#</span></td>
+				<!--- <cfif request[resultkey].results[testIndex].status neq "Success">
+					<td><span style="color:red;font-weight:bold">#request[resultkey].results[testIndex].status#</span></td>
+					<td><span style="color:red;font-weight:bold">#replace(request[resultkey].results[testIndex].message, newline, "<br>", "ALL")#</span></td>
+				<cfelse>
+					<td>#request[resultkey].results[testIndex].status#</td>
+					<td>#request[resultkey].results[testIndex].message#</td>
+				</cfif> --->
+				</tr>
 			<cfelse>
+				<tr valign="top">
+				<td>#request[resultkey].results[testIndex].testCase#</td>
+				<td>#request[resultkey].results[testIndex].testName#</td>
+				<td align="right">#request[resultkey].results[testIndex].time#</td>
 				<td>#request[resultkey].results[testIndex].status#</td>
 				<td>#request[resultkey].results[testIndex].message#</td>
-			</cfif>
-			</tr>
+				</tr>
 			</cfif>
 		</cfloop>
 		</table>
