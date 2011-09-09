@@ -83,6 +83,14 @@
 
 <cfcomponent>
 	
+	<!--- used to determine if the component is expending us --->
+	<cfset this.ROCKETUNIT_TEST_COMPONENT = true>
+	
+	<!--- used to hold debug information for display --->
+	<cfif !StructKeyExists(request, "TESTING_FRAMEWORK_DEBUGGING")>
+		<cfset request["TESTING_FRAMEWORK_DEBUGGING"] = {}>
+	</cfif>
+	
 	<!---
 		Instanciate all components in specified package and call their runTest()
 		method.
@@ -111,7 +119,9 @@
 		<cfloop query="qPackage">
 			<cfif listLast(qPackage.name, ".") eq "cfc">
 				<cfset instance = createObject("component", testPackage & "." & listFirst(qPackage.name, "."))>
-				<cfset result = result + instance.runTest(resultKey)>
+				<cfif StructKeyExists(instance, "ROCKETUNIT_TEST_COMPONENT")>
+					<cfset result = result + instance.runTest(resultKey)>
+				</cfif>
 			</cfif>
 		</cfloop>
 		
@@ -128,8 +138,9 @@
 							request scope, defaults to "test"
 		@returns true if no errors
 	--->
-	<cffunction returntype="boolean" name="runTest" output="true">
+	<cffunction name="runTest" returntype="boolean" output="true">
 		<cfargument name="resultKey" type="string" required="false" default="test">
+		<cfargument name="testname" type="string" required="false" default="">
 	
 		<cfset var key = "">
 		<cfset var keyList = "">
@@ -142,20 +153,13 @@
 		<cfset var numTestFailures = 0>
 		<cfset var numTestErrors = 0>
 		<cfset var newline = chr(10) & chr(13)>
-		
+	
 		<!---
 			Check for and if necessary set up the structure to store test results
 		--->
-		<cfparam name="request.#resultkey#" 				default=#structNew()#>
-		<cfparam name="request.#resultkey#.begin" 			default=#now()#>
-		<cfparam name="request.#resultkey#.ok" 				default=true>
-		<cfparam name="request.#resultkey#.numCases" 		default=0>
-		<cfparam name="request.#resultkey#.numTests" 		default=0>
-		<cfparam name="request.#resultkey#.numSuccesses" 	default=0>
-		<cfparam name="request.#resultkey#.numFailures" 	default=0>
-		<cfparam name="request.#resultkey#.numErrors" 		default=0>
-		<cfparam name="request.#resultkey#.summary"			default=#arrayNew(1)#>
-		<cfparam name="request.#resultkey#.results" 		default=#arrayNew(1)#>
+		<cfif !StructKeyExists(request, resultKey)>
+			<cfset resetTestResults(resultKey)>
+		</cfif>
 	
 		<cfset testCase = getMetadata(this).name>
 	
@@ -166,36 +170,32 @@
 		--->
 		<cfset keyList = listSort(structKeyList(this), "textnocase", "asc")>
 	
-		<cfloop list=#keyList# index="key">
+		<cfloop list="#keyList#" index="key">
+		
+			<!--- keep track of the test name so we can display debug information --->
+			<cfset TESTING_FRAMEWORK_VARS.RUNNING_TEST = key>
 	
-			<cfif left(key, 4) eq "test" and isCustomFunction(this[key])>
+			<cfif (left(key, 4) eq "test" and isCustomFunction(this[key])) and (!len(arguments.testname) or (len(arguments.testname) and arguments.testname eq key))>
+	
+				<cfset time = getTickCount()>
+	
+				<cfif structKeyExists(this, "setup")>
+					<cfset setup()>
+				</cfif>
 	
 				<cftry>
-					
-					<cfset time = getTickCount()>
-					
-					<cfif structKeyExists(this, "setup")>
-						<cfset setup()>
-					</cfif>
 	
 					<cfset message = "">
-					<cfinvoke method=#key#>
+					<cfinvoke method="#key#">
 					<cfset status = "Success">
 					<cfset request[resultkey].numSuccesses = request[resultkey].numSuccesses + 1>
-					
-					<cfif structKeyExists(this, "teardown")>
-						<cfset teardown()>
-					</cfif>
-					
-					<cfset time = getTickCount() - time>
-					
-				<cfcatch type="any">
-					
-					<cfset time = getTickCount() - time>
-					<cfset message = cfcatch.message>
 	
+				<cfcatch type="any">
+	
+					<cfset message = cfcatch.message>
+
 					<cfif cfcatch.ErrorCode eq "__FAIL__">
-						
+	
 						<!---
 							fail() throws __FAIL__ exception
 						--->
@@ -205,7 +205,7 @@
 						<cfset numTestFailures = numTestFailures + 1>
 	
 					<cfelse>
-						
+	
 						<!---
 							another exception thrown
 						--->
@@ -219,6 +219,12 @@
 	
 				</cfcatch>
 				</cftry>
+	
+				<cfif structKeyExists(this, "teardown")>
+					<cfset teardown()>
+				</cfif>
+	
+				<cfset time = getTickCount() - time>
 	
 				<!---
 					Record test results
@@ -237,7 +243,7 @@
 			</cfif>
 	
 		</cfloop>
-		
+	
 		<cfset result = structNew()>
 		<cfset result.testCase = testCase>
 		<cfset result.numTests = numTests>
@@ -249,7 +255,7 @@
 		<cfset request[resultkey]["end"] = now()>
 	
 		<cfreturn numTestErrors eq 0>
-		
+	
 	</cffunction>
 	
 	
@@ -260,14 +266,14 @@
 	
 		@param message	Message to record in test results against failure.
 	--->
-	<cffunction returntype="void" name="fail">
-		<cfargument type="string" name="message" required=true>
+	<cffunction name="fail" returntype="void" hint="will throw an exception resulting in a test failure along with an option message.">
+		<cfargument type="string" name="message" required="false" default="">
 	
 		<!---
 			run() interprets exception with this errorcode as a "Failure".
 			All other errorcodes cause are interpreted as an "Error".
 		--->
-		<cfthrow errorcode="__FAIL__" message=#message#>
+		<cfthrow errorcode="__FAIL__" message="#HTMLEditFormat(message)#">
 	
 	</cffunction>
 	
@@ -296,7 +302,7 @@
 	
 		<cfif not evaluate(expression)>
 	
-			<cfloop from=1 to=#arrayLen(arguments)# index="i">
+			<cfloop from="1" to="#arrayLen(arguments)#" index="i">
 	
 				<cfset expression = arguments[i]>
 				<cfset evaluatedTokens = structNew()>
@@ -328,13 +334,15 @@
 	
 							<cfif isSimpleValue(tokenValue)>
 								<cfif not (isNumeric(tokenValue) or isBoolean(tokenValue))>
-									<cfset tokenValue = "&quot;<pre>" & HTMLEditFormat(tokenValue) & "</pre>&quot;">
+									<cfset tokenValue ="'#tokenValue#'">
 								</cfif>
 							<cfelse>
 								<cfif isArray(tokenValue)>
 									<cfset tokenValue = "array of #arrayLen(tokenValue)# items">
 								<cfelseif isStruct(tokenValue)>
 									<cfset tokenValue = "struct with #structCount(tokenValue)# members">
+								<cfelseif IsCustomFunction(tokenValue)>
+									<cfset tokenValue = "UDF">
 								</cfif>
 							</cfif>
 	
@@ -351,7 +359,48 @@
 			<cfset fail(message)>
 	
 		</cfif>
+
+	</cffunction>
 	
+	
+	
+	<cffunction name="debug" returntype="Any" output="false" hint="used to examine an expression. any overloaded arguments get passed to cfdump's attributeCollection">
+		<cfargument name="expression" type="string" required="true" hint="the expression to examine.">
+		<cfargument name="display" type="boolean" required="false" default="true" hint="whether to display the debug call. false returns without outputting anything into the buffer. good when you want to leave the debug command in the test for later purposes, but don't want it to display">
+		<cfset var attributeArgs = {}>
+		<cfset var dump = "">
+		
+		<cfif !arguments.display>
+			<cfreturn>
+		</cfif>
+
+		<cfset attributeArgs["var"] = "#evaluate(arguments.expression)#">
+		
+		<cfset structdelete(arguments, "expression")>
+		<cfset structdelete(arguments, "display")>
+		<cfset structappend(attributeArgs, arguments, true)>
+
+		<cfsavecontent variable="dump">
+		<cfdump attributeCollection="#attributeArgs#">
+		</cfsavecontent>
+		
+		<cfif !StructKeyExists(request["TESTING_FRAMEWORK_DEBUGGING"], TESTING_FRAMEWORK_VARS.RUNNING_TEST)>
+			<cfset request["TESTING_FRAMEWORK_DEBUGGING"][TESTING_FRAMEWORK_VARS.RUNNING_TEST] = []>
+		</cfif>
+		<cfset arrayAppend(request["TESTING_FRAMEWORK_DEBUGGING"][TESTING_FRAMEWORK_VARS.RUNNING_TEST], dump)>
+	</cffunction>
+
+
+
+	<cffunction name="raised" returntype="string" output="false" hint="catches an raised error and returns the error type. great if you want to test that a certain exception will be raised.">
+		<cfargument type="string" name="expression" required="true">
+		<cftry>
+			<cfset evaluate(arguments.expression)>
+			<cfcatch type="any">
+				<cfreturn trim(cfcatch.type)>
+			</cfcatch>
+		</cftry>
+		<cfreturn "">
 	</cffunction>
 	
 	
@@ -412,20 +461,20 @@
 		@param resultKey	Key to store distinct test result sets under in
 							request scope, defaults to "test"
 	--->
-	<cffunction returntype="void" name="resetTestResults" output="false">
+	<cffunction name="resetTestResults" returntype="void" output="false">
 		<cfargument name="resultKey" type="string" required="false" default="test">
-	
-		<cfset request[resultkey] = structNew()>
-		<cfparam name="request[resultkey].begin" 		default=#now()#>
-		<cfparam name="request[resultkey].ok" 			default=true>
-		<cfparam name="request[resultkey].numCases" 		default=0>
-		<cfparam name="request[resultkey].numTests" 		default=0>
-		<cfparam name="request[resultkey].numSuccesses" 	default=0>
-		<cfparam name="request[resultkey].numFailures" 	default=0>
-		<cfparam name="request[resultkey].numErrors" 	default=0>
-		<cfparam name="request[resultkey].summary"		default=#arrayNew(1)#>
-		<cfparam name="request[resultkey].results" 		default=#arrayNew(1)#>
-	
+		<cfscript>
+		request[resultkey] = {};
+		request[resultkey].begin = now();
+		request[resultkey].ok = true;
+		request[resultkey].numCases = 0;
+		request[resultkey].numTests = 0;
+		request[resultkey].numSuccesses = 0;
+		request[resultkey].numFailures = 0;
+		request[resultkey].numErrors = 0;
+		request[resultkey].summary = [];
+		request[resultkey].results = [];
+		</cfscript>
 	</cffunction>
 	
 	
@@ -445,7 +494,7 @@
 	
 		<cfset var testIndex = "">
 		<cfset var newline = chr(10) & chr(13)>
-	
+
 		<cfsavecontent variable="result">
 		<cfoutput>
 		<table cellpadding="5" cellspacing="0">
@@ -517,6 +566,11 @@
 				<td><span style="color:red;font-weight:bold">#request[resultkey].results[testIndex].status#</span></td>
 				<td><span style="color:red;font-weight:bold">#request[resultkey].results[testIndex].message#</span></td>
 				</tr>
+			</cfif>
+			<cfif StructKeyExists(request, "TESTING_FRAMEWORK_DEBUGGING") && StructKeyExists(request["TESTING_FRAMEWORK_DEBUGGING"], request[resultkey].results[testIndex].testName)>
+				<cfloop array="#request['TESTING_FRAMEWORK_DEBUGGING'][request[resultkey].results[testIndex].testName]#" index="i">
+				<tr class="<cfif request[resultkey].results[testIndex].status neq 'Success'>errRow<cfelse>sRow</cfif>"><td colspan="5">#i#</tr>
+				</cfloop>
 			</cfif>
 		</cfloop>
 		</table>

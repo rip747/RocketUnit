@@ -35,8 +35,9 @@
 	</style>
 </head>
 <body>
-	<cfset test = createObject("component", "com.rocketboots.rocketunit.Test")>
-	<cfset test.runTestPackage("test.com.rocketboots.sample")>
+	<cfset test = createObject("component", "src.Test")>
+	<cfset test.runTestPackage("examples")>
 	<cfoutput>#test.HTMLFormatTestResults()#</cfoutput>
+<!--- 	<cfdump var="#request['TESTING_FRAMEWORK_DEBUGGING']#"> --->
 </body>
 </html>

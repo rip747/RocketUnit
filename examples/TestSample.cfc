@@ -25,13 +25,13 @@
 	@version $Id: TestSample.cfc 168 2007-04-12 07:50:38Z robin $
 --->
 
-<cfcomponent extends="com.rocketboots.rocketunit.Test">
+<cfcomponent extends="src.Test">
 
 	<!---
 		Set up some constants used during the tests
 	--->
 	
-	<cfset CLASS_NAME="com.rocketboots.sample.Sample">
+	<cfset CLASS_NAME="examples.Sample">
 
 
 
@@ -41,7 +41,7 @@
 		contents etc.
 	--->
 	<cffunction access="public" returntype="void" name="setup">
-		<cfset instance = createObject("component", CLASS_NAME).init()>
+		<cfset instance = createObject("component", CLASS_NAME)>
 	</cffunction>
 
 
@@ -60,7 +60,7 @@
 		When working with cfcs it's a good reality check to see that the instance
 		was created successfully before you proceed further.
 	--->
-	<cffunction access="public" returntype="void" name="test_00_instance">
+	<cffunction access="public" returntype="void" name="_test_00_instance">
 		<cfscript>
 			assert("isDefined('instance')");
 			assert("getMetadata(instance).name eq CLASS_NAME");
@@ -114,7 +114,7 @@
 	--->
 	<cffunction access="public" returntype="void" name="test_04_squareRoot_negative">
 		<cftry>
-			<cfset x = instance.squareRoot2(-4)>
+			<cfset x = instance.squareRoot(-4)>
 			<!---
 				If we got this far the method did not thow an error as it was supposed to!
 				Use the fail() method to create a custom failure message.

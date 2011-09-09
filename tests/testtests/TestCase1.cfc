@@ -23,7 +23,7 @@
 	$Header: $
 --->
 
-<cfcomponent extends="com.rocketboots.rocketunit.Test">
+<cfcomponent extends="src.Test">
 
 
 	<cffunction access="public" returntype="void" name="test_00_null_test">

@@ -22,10 +22,10 @@
 	$Header: $
 --->
 
-<cfcomponent extends="com.rocketboots.rocketunit.Test">
+<cfcomponent extends="src.Test">
 
 	<cffunction access="public" returntype="void" name="setup">
-		<cfset package = "com.rocketboots.rocketunit.rocketunittests.testtests">
+		<cfset package = "tests.testtests">
 	</cffunction>
 
 
