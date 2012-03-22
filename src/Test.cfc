@@ -581,4 +581,38 @@
 	
 	</cffunction>
 	
+	
+	
+	
+	<!---
+		Report test results at overall, test case and test level, highlighting
+		failures and errors.
+		
+		@param resultKey	Key to retrive distinct test result sets from in
+							request scope, defaults to "test"
+		@returns			jUnit XML formatted test results
+	--->
+	<cffunction returnType="string" name="jUnitXmlFormatTestResults" output="false">
+		<cfargument name="resultKey" type="string" required="false" default="test">
+
+		<cfset var xml = "" />
+		<cfset var result = request[resultKey] />
+
+		<cfsavecontent variable="xml"><cfoutput><?xml version="1.0"?>
+        <testsuite errors="#result.numErrors#" failures="#result.numFailures#" name="Rocketunit Tests" tests="#result.numTests#" time="0.0090" timestamp="#now()#">
+            <!---
+            <properties>
+                <property />
+            </properties>
+            --->
+            <cfloop from="1" to="#arrayLen(result.results)#" index="resultIndex">
+            <testcase name="#result.results[resultIndex].testName#" time="0.0"><cfif result.results[resultIndex].status neq "Success"><failure message="#replace(result.results[resultIndex].message,'"','""','all')#">#result.results[resultIndex].message#</failure></cfif></testcase>
+            </cfloop>
+            <system-out><![CDATA[]]></system-out>
+            <system-err><![CDATA[]]></system-err>
+        </testsuite>
+		</cfoutput></cfsavecontent>
+		<cfreturn xml>
+	</cffunction>
+	
 </cfcomponent>
