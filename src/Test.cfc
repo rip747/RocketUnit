@@ -1,87 +1,4 @@
-<!---
-	Base component for rapidly writing/running test cases.
-
-	Terminology
-	-----------
-	-	A Test Package is a collection of Test Cases that tests the functionality
-		of an application/service/whatever.
-
-	-	A Test Case is a collection of Tests to apply to a particular CF component,
-		tag or include file.
-
-	- 	A Test is a sequence of calls to the code being tested and Assertions about
-		the results we get from the code.
-
-	-	An Assertion is a statement we make about the results we get that should
-		evaluate to true if the tested code is working properly.
-
-	How are these things represented in test code using this file?
-	--------------------------------------------------------------
-	-	A Test Package is a directory that can be referred to by a CF mapping, and
-		ideally outside the web root for security.
-
-	-	A Test Case is a CF component in that directory that has this file included
-		in itself or a component it extends.  The include should be inside the
-		<cfcomponent> tag and outside any <cffunction> tags.
-
-	-	A Test is a method in one of these components.  The method name should start with
-		the word "test", it should require no arguments and return void.  Any setup or
-		clearup code common to all test functions can be added to optional setup() and
-		teardown() methods, which again take no arguments and return void.
-
-		Tests in each Test Case are run in alphabetical order.  If you want your tests
-		to run in a particular order you could name them test01xxx, test02yyy, etc.
-
-	-	An Assertion is a call to the assert() method (mixed in by this file) inside
-		a test method.  assert() takes a string argument, an expression (see ColdFusion
-		evaluate() documentation) that evaluates to true or false.  If false, a "failure"
-		is recorded for the test case and the test case fails.  assert() tries to include
-		the value of any variables it finds in the expression.
-
-		If there are specific variable values you would like included in the failure message,
-		pass them as additional string arguments to assert().  Multiple variables can be
-		listed in a single space-delimited string if this is convenient.
-
-		For more complicated assertions you may call the fail() method directly, which takes
-		a single message string as an argument.
-
-	-	If an uncaught exception is thrown an "error" is recorded for the Test Case and the
-		Test Case fails.
-
-	Running tests
-	-------------
-	This file can be included in any ColdFusion code, not just components.  To run
-	a Test Package include this file and call run(), passing the Test Package name in dot
-	format, e.g. run("com.rocketboots.myapp.test").  If you want to run a specific Test Case,
-	create an instance of the Test Case component and call its run() method without any
-	arguments.
-
-	The test results are available in the request.test structure.  If you would like to
-	use a different key in request (as we do for the rocketunit self-tests) for the results
-	you can pass the key name as a second argument to the run method.  If you would like
-	a formatted HTML string of the test results call HTMLFormatTestResults().  You can call
-	run() multiple times and the test results will be combined.  If you wish to reset the test
-	results before calling run() again, call resetTestResults().
-
-
-	(c) 2008 RocketBoots Pty Ltd
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-	
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-	
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-	@version $Id$
---->
-
-<cfcomponent>
+<cfcomponent output="false">
 	
 	<!--- used to determine if the component is expending us --->
 	<cfset this.ROCKETUNIT_TEST_COMPONENT = true>
@@ -90,20 +7,14 @@
 	<cfif !StructKeyExists(request, "TESTING_FRAMEWORK_DEBUGGING")>
 		<cfset request["TESTING_FRAMEWORK_DEBUGGING"] = {}>
 	</cfif>
+
+
+
 	
-	<!---
-		Instanciate all components in specified package and call their runTest()
-		method.
-		
-		@param testPackage	Package containing test components
-		@param resultKey	Key to store distinct test result sets under in
-							request scope, defaults to "test"
-		@returns			true if no failures or errors detected.
-	--->
-	<cffunction returntype="boolean" name="runTestPackage" output="false">
-		<cfargument name="testPackage" type="string" required="true">
-		<cfargument name="resultKey" type="string" required="false" default="test">
-	
+	<cffunction name="runTestPackage" access="public" returntype="boolean" output="false"
+		hint="Instanciate all components in specified package and call their runTest() method.">
+		<cfargument name="testPackage" type="string" required="true" hint="Package containing test components">
+		<cfargument name="resultKey" type="string" required="false" default="test" hint="Key to store distinct test result sets under in request scope, defaults to 'test'">	
 		<cfset var packageDir = "">
 		<cfset var qPackage = "">
 		<cfset var instance = "">
@@ -126,21 +37,15 @@
 		</cfloop>
 		
 		<cfreturn result eq 0>
-		
 	</cffunction>
-	
-	
-	
-	<!---
-		Run all the tests in a component.
-	
-		@param resultKey	Key to store distinct test result sets under in
-							request scope, defaults to "test"
-		@returns true if no errors
-	--->
-	<cffunction name="runTest" returntype="boolean" output="true">
-		<cfargument name="resultKey" type="string" required="false" default="test">
-		<cfargument name="testname" type="string" required="false" default="">
+
+
+
+
+	<cffunction name="runTest" access="public" returntype="boolean" output="false"
+		hint="Run all the tests in a component.">
+		<cfargument name="resultKey" type="string" required="false" default="test" hint="Key to store distinct test result sets under in request scope, defaults to 'test'">	
+		<cfargument name="testname" type="string" required="false" default="" hint="the name of the test to run">
 	
 		<cfset var key = "">
 		<cfset var keyList = "">
@@ -255,44 +160,28 @@
 		<cfset request[resultkey]["end"] = now()>
 	
 		<cfreturn numTestErrors eq 0>
-	
 	</cffunction>
-	
-	
-	
-	
-	<!---
-		Called from a test function to cause the test to fail.
-	
-		@param message	Message to record in test results against failure.
-	--->
-	<cffunction name="fail" returntype="void" hint="will throw an exception resulting in a test failure along with an option message.">
-		<cfargument type="string" name="message" required="false" default="">
+
+
+
+
+	<cffunction name="fail" access="public" returntype="void" output="false"
+		hint="Called from a test function to cause the test to fail.">
+		<cfargument name="message" type="string" required="false" default="" hint="Message to record in test results against failure.">
 	
 		<!---
 			run() interprets exception with this errorcode as a "Failure".
 			All other errorcodes cause are interpreted as an "Error".
 		--->
 		<cfthrow errorcode="__FAIL__" message="#HTMLEditFormat(message)#">
-	
 	</cffunction>
-	
-	
-	
-	
-	<!---
-		Called from a test function.  If expression evaluates to false,
-		record a failure against the test.
-	
-		@param	expression	String containing CFML expression to evaluate
-		@param	2..n			Optional. String(s) containing space-delimited list
-							of variables to evaluate and include in the
-							failure message to help determine cause of failed
-							assertion.
-	--->
-	<cffunction returntype="void" name="assert" output="false">
-		<cfargument type="string" name="expression" required=true>
-	
+
+
+
+
+	<cffunction name="assert" access="public" returntype="void" output="false"
+		hint="Called from a test function. If expression evaluates to false, record a failure against the test.">
+		<cfargument name="expression" type="string" required="true" hint="String containing CFML expression to evaluate">
 		<cfset var token = "">
 		<cfset var tokenValue = "">
 		<cfset var message = "assert failed: #expression#">
@@ -361,10 +250,12 @@
 		</cfif>
 
 	</cffunction>
-	
-	
-	
-	<cffunction name="debug" returntype="Any" output="false" hint="used to examine an expression. any overloaded arguments get passed to cfdump's attributeCollection">
+
+
+
+
+	<cffunction name="debug" access="public" returntype="Any" output="false"
+		hint="used to examine an expression. any overloaded arguments get passed to cfdump's attributeCollection">
 		<cfargument name="expression" type="string" required="true" hint="the expression to examine.">
 		<cfargument name="display" type="boolean" required="false" default="true" hint="whether to display the debug call. false returns without outputting anything into the buffer. good when you want to leave the debug command in the test for later purposes, but don't want it to display">
 		<cfset var attributeArgs = {}>
@@ -392,8 +283,10 @@
 
 
 
-	<cffunction name="raised" returntype="string" output="false" hint="catches an raised error and returns the error type. great if you want to test that a certain exception will be raised.">
-		<cfargument type="string" name="expression" required="true">
+
+	<cffunction name="raised" access="public" returntype="string" output="false"
+		hint="catches an raised error and returns the error type. great if you want to test that a certain exception will be raised.">
+		<cfargument name="expression" type="string" required="true">
 		<cftry>
 			<cfset evaluate(arguments.expression)>
 			<cfcatch type="any">
@@ -402,20 +295,14 @@
 		</cftry>
 		<cfreturn "">
 	</cffunction>
-	
-	
-	
-	<!---
-		Called from a test function to compare strings that might differ in
-		minor ways that may be hard to spot. Fails test with a message
-		containing a table of character index comparisons
-	
-		@param	string1	
-		@param	string2
-	--->
-	<cffunction returntype="void" name="stringsEqual" output="false">
-		<cfargument type="string" name="string1" required=true>
-		<cfargument type="string" name="string2" required=true>
+
+
+
+
+	<cffunction name="stringsEqual" access="public" returntype="void" output="false"
+		hint="Called from a test function to compare strings that might differ in minor ways that may be hard to spot. Fails test with a message containing a table of character index comparisons">
+		<cfargument name="string1" type="string" required="true">
+		<cfargument name="string2" type="string" required="true">
 		
 		<cfset var output = "<table>">
 		<cfset var i = 0>
@@ -450,19 +337,15 @@
 		<cfif bFail>
 			<cfset fail(output & "</table>")>
 		</cfif>
-		
+
 	</cffunction>
-		
-		
-		
-	<!---
-		Clear results.
-		
-		@param resultKey	Key to store distinct test result sets under in
-							request scope, defaults to "test"
-	--->
-	<cffunction name="resetTestResults" returntype="void" output="false">
-		<cfargument name="resultKey" type="string" required="false" default="test">
+
+
+
+
+	<cffunction name="resetTestResults" access="public" returntype="void" output="false"
+		hint="Clear results.">
+		<cfargument name="resultKey" type="string" required="false" default="test" hint="Key to store distinct test result sets under in request scope, defaults to 'test'">
 		<cfscript>
 		request[resultkey] = {};
 		request[resultkey].begin = now();
@@ -476,21 +359,14 @@
 		request[resultkey].results = [];
 		</cfscript>
 	</cffunction>
-	
-	
-	
-	
-	<!---
-		Report test results at overall, test case and test level, highlighting
-		failures and errors.
-		
-		@param resultKey	Key to retrive distinct test result sets from in
-							request scope, defaults to "test"
-		@returns			HTML formatted test results
-	--->
-	<cffunction returntype="string" name="HTMLFormatTestResults" output="false">
-		<cfargument name="resultKey" type="string" required="false" default="test">
-		<cfargument name="showPassedTests" type="boolean" required="false" default="true">
+
+
+
+
+	<cffunction name="HTMLFormatTestResults" access="public" returntype="string" output="false"
+		hint="Report test results at overall, test case and test level, highlighting failures and errors.">
+		<cfargument name="resultKey" type="string" required="false" default="test" hint="Key to retrive distinct test result sets from in request scope, defaults to 'test'">
+		<cfargument name="showPassedTests" type="boolean" required="false" default="true" hint="HTML formatted test results">
 	
 		<cfset var testIndex = "">
 		<cfset var newline = chr(10) & chr(13)>
@@ -578,7 +454,6 @@
 		</cfsavecontent>
 	
 		<cfreturn REReplace(result, "[	 " & newline & "]{2,}", newline, "ALL")>
-	
 	</cffunction>
 	
 </cfcomponent>
